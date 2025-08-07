@@ -1,0 +1,40 @@
+services:
+  postgis:
+    image: postgis/postgis:latest
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=1234
+    # - POSTGRES_DB=geodb
+    volumes:
+      # - ./postgis_data:/var/lib/postgresql/data
+      - ./postgis_db:/docker-entrypoint-initdb.d
+    ports:
+      - "5410:5432"
+    networks:
+      - geoserver-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d geodb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tomcat:
+    image: tomcat:9-jre11
+    volumes:
+      - ./geoserver:/usr/local/tomcat/webapps
+    environment:
+      - CATALINA_OPTS=-Xms512m -Xmx1024m
+    command: ["catalina.sh", "run"]
+    ports:
+      - "8080:8080"
+    networks:
+      - geoserver-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  geoserver-network:
+    driver: bridge
